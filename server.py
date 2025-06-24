@@ -22,7 +22,7 @@ except linuxcnc.error as detail:
 # Fields we will be sending over ethernet to client
 fields = ['actual_position', 'command']
 
-sample_rate = 10.0
+sample_rate = 0.5
 sample_interval = 1.0 / sample_rate
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,8 +36,8 @@ try:
 
         while True:
             Ls.poll()
-            data = {field: getattr(s, field) for field in fields}
-            data['timestamp'] = datetime.now().isoformat()
+            data = {field: getattr(Ls, field) for field in fields}
+            data['timestamp'] = datetime.datetime.now().isoformat()
             message = json.dumps(data)
             message_bytes = message.encode('utf-8')  # Python 2: encode to bytes
 
