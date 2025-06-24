@@ -1,40 +1,51 @@
+# Written for Python 2.7.6
+
 import sys
 import time
 import datetime
 import numpy as np
 import socket
 import linuxcnc
+import json
+import struct
 
+HOST = '172.30.95.50'
+PORT = 12345
 
-# host can be a hostname, IP address or empty string
-# IP address usually needs to be IPv4 formatted address string, for ex. 127.0.0.1
-# empty string - server will accept connection from all available IPv interfaces
-HOST = '127.0.0.1' # Standard loopback interface address (localhost)
-# port should an integer between 1-65535 (0 is reserved)
-PORT = 65432 # Port to listen on (non-privileged ports are > 1023)
+# Connect to linuxcnc status channel
+try:
+    Ls = linuxcnc.stat()
+except linuxcnc.error as detail:
+    print("Error:", detail)
+    sys.exit(1)
 
+# Fields we will be sending over ethernet to client
+fields = ['actual_position', 'command']
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    # the value that this passed to bind() depends on the address family of the socket
-    # for AF_INET(IPv4), bind() expects a tuple (host, port)
+sample_rate = 10.0
+sample_interval = 1.0 / sample_rate
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
     s.bind((HOST, PORT))
-    s.listen()
+    s.listen(1)
 
-    # When a client connects, it returns
-    # conn - a new socket object representing the connection
-    # addr - a tuple holding the address of the client (host, port) for IPv4 or (host, port, flowinfo, scopeid) for IPv6
     conn, addr = s.accept()
+    try:
+        print "Connected by", addr
 
-    # conn is a different socket from 's' which was the original socket used to listen to and accept new connections
-    with conn:
-        print("Connected by", addr)
-
-        # an infinite while loop is used to loop over blocking calls to conn.recv().
-        # here it will read whatever data the client send and echoes it back using conn.sendall()
         while True:
-            data = conn.recv(1024)
-            
-            # if conn.recv() returns an empty bytes object, b'', then the loop is terminated
-            if not data:
-                break
-            conn.sendall(data)
+            Ls.poll()
+            data = {field: getattr(s, field) for field in fields}
+            data['timestamp'] = datetime.now().isoformat()
+            message = json.dumps(data)
+            message_bytes = message.encode('utf-8')  # Python 2: encode to bytes
+
+            conn.sendall(struct.pack('!I', len(message_bytes)))
+            conn.sendall(message_bytes)
+
+            time.sleep(sample_interval)
+    finally:
+        conn.close()
+finally:
+    s.close()
