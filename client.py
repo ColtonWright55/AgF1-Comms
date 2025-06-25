@@ -1,5 +1,6 @@
 import socket
 import json
+import threading
 
 HOST = '172.30.95.50' # The server's hostname or IP address
 PORT = 12345 # The port used by the server
