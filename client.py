@@ -33,7 +33,7 @@ def receive_data(socket):
 
         try:
             data = json.loads(msg.decode('utf-8'))
-            # print(f"Received data: {data}")
+            print(f"Received data: {data}")
         except Exception as e:
             print("Error decoding JSON: ", e)
             break

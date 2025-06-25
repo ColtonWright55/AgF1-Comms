@@ -19,8 +19,8 @@ Although, for some reason when you run `server.py` and `client.py` it resets `if
 This is all weird because IP settings without a router are strange. They have to be on same IP with different subnet if there isn't a router I think.
 
 
-### TODO
+## TODO
 
-* Make sure no buffers fill and crash server or client. Only send one poll packet per sample period.
-* Make sure commands are sent/received while polls are still sent. So threaded server.py? Hopefully not
+* ~~Make sure no buffers fill and crash server or client. Only send one poll packet per sample period.~~
+* ~~Make sure commands are sent/received while polls are still sent. So threaded server.py?~~
 * Setup pathpilot to boot server automatically on setup, save changes here
