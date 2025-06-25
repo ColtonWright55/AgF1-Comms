@@ -18,9 +18,25 @@ Although, for some reason when you run `server.py` and `client.py` it resets `if
 
 This is all weird because IP settings without a router are strange. They have to be on same IP with different subnet if there isn't a router I think.
 
+### Server stability
+
+You can use `sudo ifconfig eth1 172.30.95.50 netmask 255.255.255.0 up` to set `eth1` internet address, but NetworkManager can dynamically change your ip address. You need to setup `eth1` in the `interfaces` configuration file so that the IP does not change during runtime or restart. You will edit `/etc/network/interfaces` and add the following to the bottom of the file:
+
+"""
+auto eth1
+iface eth1 inet static
+    address 172.30.95.50
+    netmask 255.255.255.0
+"""
+
+This is helpful if you get stuck: https://wiki.debian.org/NetworkConfiguration
+
+Once this was done, `eth1`'s ip address was persistent through reboots, and server stability issues were fixed.
+
 
 ## TODO
 
 * ~~Make sure no buffers fill and crash server or client. Only send one poll packet per sample period.~~
 * ~~Make sure commands are sent/received while polls are still sent. So threaded server.py?~~
+* ~~Server stability issues~~
 * Setup pathpilot to boot server automatically on setup, save changes here
