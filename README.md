@@ -21,12 +21,12 @@ This is all weird because IP settings without a router are strange. They have to
 
 You can use `sudo ifconfig eth1 172.30.95.50 netmask 255.255.255.0 up` to set `eth1` internet address, but NetworkManager can dynamically change your ip address. You need to setup `eth1` in the `interfaces` configuration file so that the IP does not change during runtime or restart. You will edit `/etc/network/interfaces` and add the following to the bottom of the file:
 
-"""
+```
 auto eth1
 iface eth1 inet static
     address 172.30.95.50
     netmask 255.255.255.0
-"""
+```
 
 This is helpful if you get stuck: https://wiki.debian.org/NetworkConfiguration
 
