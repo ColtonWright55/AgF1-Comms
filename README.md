@@ -4,6 +4,7 @@ LinuxCNC poller and socket in python
 
 ## IP Connection documentation
 
+### Client setup (Windows)
 Make sure client (windows PC) has setting:
 
 Settings > Network & Internet > Advanced network settings > Advanced sharing settings > Turn on network discovery
@@ -14,11 +15,9 @@ Then when I run on windows `ping 172.30.94.50` it works, and on linux `ping 172.
 
 You should be able to ping windows from linux and linux from windows now.
 
-Although, for some reason when you run `server.py` and `client.py` it resets `ifconfig eth1`. So you have to enter again `sudo ifconfig eth1 172.30.94.50 netmask 255.255.255.0 up`
-
 This is all weird because IP settings without a router are strange. They have to be on same IP with different subnet if there isn't a router I think.
 
-### Server stability
+### Server setup (Linux/Pathpilot)
 
 You can use `sudo ifconfig eth1 172.30.95.50 netmask 255.255.255.0 up` to set `eth1` internet address, but NetworkManager can dynamically change your ip address. You need to setup `eth1` in the `interfaces` configuration file so that the IP does not change during runtime or restart. You will edit `/etc/network/interfaces` and add the following to the bottom of the file:
 
@@ -33,10 +32,35 @@ This is helpful if you get stuck: https://wiki.debian.org/NetworkConfiguration
 
 Once this was done, `eth1`'s ip address was persistent through reboots, and server stability issues were fixed.
 
+## Agility Forge Device IP's
+
+Promess Controller
+172.30.95.51
+255.255.255.0
+
+Promess PLC
+172.30.95.52
+255.255.255.0
+
+Windows PC
+172.30.95.55
+255.255.255.0
+
+Linux Network Port
+172.30.95.50
+255.255.255.0
+
+Linux Machine Port
+10.10.10.9
+255.255.255.0
+
+Micro-Epsilon Linescanner
+172.30.95.53
+255.255.255.0
 
 ## TODO
 
 * ~~Make sure no buffers fill and crash server or client. Only send one poll packet per sample period.~~
 * ~~Make sure commands are sent/received while polls are still sent. So threaded server.py?~~
 * ~~Server stability issues~~
-* Setup pathpilot to boot server automatically on setup, save changes here
+* ~~Setup pathpilot to boot server automatically on setup, save changes here~~
