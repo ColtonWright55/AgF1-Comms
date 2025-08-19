@@ -39,6 +39,9 @@ Promess Controller
 255.255.255.0
 
 Promess PLC
+To change the Promess PLC's IP you will need to log in as the admin.
+Username: Admin
+Password: 123
 172.30.95.52
 255.255.255.0
 
@@ -57,6 +60,12 @@ Linux Machine Port
 Micro-Epsilon Linescanner
 172.30.95.53
 255.255.255.0
+
+Micro-Epsilon Thermal Camera USB Server
+Software needed for setup : https://www.wut.de/e-53www-15-inus-000.php
+For setup, you follow Optris quick start guide: https://optris.com/wp-content/uploads/2024/10/ACPIUSBSGB-QSG-E2023-05-C.pdf
+USB Server IP: 172.30.95.54
+Subnet:        255.255.255.0
 
 ## TODO
 
