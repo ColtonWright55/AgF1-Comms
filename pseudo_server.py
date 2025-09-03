@@ -6,7 +6,6 @@ import time
 import datetime
 import numpy as np
 import socket
-# import linuxcnc
 import json
 import struct
 import threading
@@ -17,7 +16,6 @@ PORT = 12345
 def handle_client(conn):
     def send_data():
         while True:
-            # Ls.poll()
 
             data = {}
             data['timestamp'] = datetime.datetime.now().isoformat()
@@ -39,37 +37,11 @@ def handle_client(conn):
             cmd = conn.recv(1024)
             print "received command: ", cmd
 
-            # if ok_for_mdi() and cmd is not None:
-            #     Lc.mode(linuxcnc.MODE_MDI)
-            #     Lc.wait_complete() # wait until mode switch executed
-            #     Lc.mdi(cmd)
 
     t = threading.Thread(target=send_data)
     t.daemon = True
     t.start()
     receive_commands()
-
-# def ok_for_mdi():
-#     Ls.poll()
-#     return not Ls.estop and Ls.enabled and (Ls.homed.count(1) == Ls.joints) and (Ls.interp_state == linuxcnc.INTERP_IDLE)
-
-
-
-
-
-
-# Connect to linuxcnc status channel
-# try:
-#     Ls = linuxcnc.stat()
-# except linuxcnc.error as detail:
-#     print("Error:", detail)
-#     sys.exit(1)
-
-# try:
-#     Lc = linuxcnc.command()
-# except linuxcnc.error as detail:
-#     print("Error:", detail)
-#     sys.exit(1)
 
 
 
@@ -89,7 +61,7 @@ try:
     s.listen(1)
     try:
         conn, addr = s.accept()
-        print "Connected by", addr
+        print("Connected by", addr)
 
         handle_client(conn)
     finally:

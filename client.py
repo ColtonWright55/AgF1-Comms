@@ -1,65 +1,73 @@
 import socket
-import json
 import threading
+import time
+import re
+from collections import deque
+from utils import receive_data
 
-HOST = '172.30.95.50' # The server's hostname or IP address
-PORT = 12345 # The port used by the server
+HOST = '172.30.95.50'  # The server's hostname or IP address
+PORT = 12345  # The port used by the server
 
-def recv_all(sock, n):
-    # Helper function to receive exactly n bytes
-    data = b''
-    while len(data) < n:
-        packet = sock.recv(n - len(data))
-        if not packet:
-            return None
-        data += packet
-    return data
+def load_gcode_lines(filepath):
+    commands = []
+    with open(filepath, 'r') as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            # Remove parenthetical comments anywhere in the line
+            line = re.sub(r"\([^)]*\)", "", line).strip()
+            if not line:
+                continue
+            # Skip lines containing percent program markers
+            if '%' in line:
+                continue
+            commands.append(line)
+    return commands
 
-def receive_data(socket):
-    while True:
-        # First receive 4 bytes length prefix
-        raw_msglen = recv_all(s, 4)
-        if not raw_msglen:
-            print("Server closed connection")
-            break
 
-        msglen = int.from_bytes(raw_msglen, byteorder='big')
+class MotionGate():
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.cur_command = None
+        self.idle = True
 
-        # Receive the actual message
-        msg = recv_all(s, msglen)
-        if not msg:
-            print("Server closed connection")
-            break
-
+    def on_status(self, data):
         try:
-            data = json.loads(msg.decode('utf-8'))
-            print(f"Received data: {data}")
-        except Exception as e:
-            print("Error decoding JSON: ", e)
-            break
+            cur_command = data.get('command')
+        except Exception:
+            pass
+        self.is_idle()
+
+    def is_idle(self):
+        with self.lock:
+            if self.cur_command != '': # If no command is running, ready to send a new one
+                self.idle = True
+            else:
+                self.idle=False
 
 
-def send_commands(socket):
-    while True:
-        cmd = input(">>> ")
-        if cmd.strip():
-            socket.sendall(cmd.encode('utf-8'))
+def send_sequentially(sock, commands, gate):
+    for cmd in commands:
+        sock.sendall(cmd.encode('utf-8'))
+        time.sleep(0.02)
+        while not gate.is_idle():
+            time.sleep(0.02)
+        time.sleep(0.02)  # brief settle when done with gcode file
 
 
+if __name__ == '__main__':
+    gcode_path = 'gcode/3-4Bolt__25A'
+    lines = load_gcode_lines(gcode_path)
 
 
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        print("Connected")
 
+        gate = MotionGate()
+        threading.Thread(target=receive_data, args=(s, gate.on_status), daemon=True).start()
 
+        send_sequentially(s, lines, gate)
 
-
-
-
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
-    print("Connected")
-
-    threading.Thread(target=receive_data, args=(s,), daemon=True).start()
-
-    send_commands(s)
-
-    print("cjw Shutdown")
+        print("All commands sent. Shutdown")
