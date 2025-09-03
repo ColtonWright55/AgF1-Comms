@@ -16,7 +16,11 @@ PORT = 12345
 def handle_client(conn):
     def send_data():
         while True:
-            Ls.poll()
+            s = Ls.poll()
+            for x in dir(Ls):
+                if not x.startswith("_"):
+                    # print(x, getattr(Ls,x))
+                    pass # 
 
             data = {field: getattr(Ls, field) for field in fields}
             data['timestamp'] = datetime.datetime.now().isoformat()
@@ -39,6 +43,7 @@ def handle_client(conn):
             if ok_for_mdi() and cmd is not None:
                 Lc.mode(linuxcnc.MODE_MDI)
                 Lc.wait_complete() # wait until mode switch executed
+                print "Sending Lc.mdi(cmd)"
                 Lc.mdi(cmd)
 
     t = threading.Thread(target=send_data)
@@ -48,7 +53,7 @@ def handle_client(conn):
 
 def ok_for_mdi():
     Ls.poll()
-    return not Ls.estop and Ls.enabled and (Ls.homed.count(1) == Ls.joints) and (Ls.interp_state == linuxcnc.INTERP_IDLE)
+    return not Ls.estop and Ls.enabled and (Ls.interp_state == linuxcnc.INTERP_IDLE)
 
 
 
@@ -58,6 +63,7 @@ def ok_for_mdi():
 # Connect to linuxcnc status channel
 try:
     Ls = linuxcnc.stat()
+    print dir(Ls.poll())
 except linuxcnc.error as detail:
     print("Error:", detail)
     sys.exit(1)
