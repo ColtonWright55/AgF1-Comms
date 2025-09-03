@@ -40,6 +40,7 @@ class MotionGate():
         self.is_idle()
 
     def is_idle(self):
+        print("[DBG]: Running is_idle")
         with self.lock:
             if self.cur_command != '': # If no command is running, ready to send a new one
                 self.idle = True
@@ -49,15 +50,16 @@ class MotionGate():
 
 def send_sequentially(sock, commands, gate):
     for cmd in commands:
+        print(f"Sending command: {cmd}")
         sock.sendall(cmd.encode('utf-8'))
-        time.sleep(0.02)
-        while not gate.is_idle():
+        time.sleep(2.00) # time.sleep(0.02)
+        while not gate.idle:
             time.sleep(0.02)
         time.sleep(0.02)  # brief settle when done with gcode file
 
 
 if __name__ == '__main__':
-    gcode_path = 'gcode/3-4Bolt__25A'
+    gcode_path = 'gcode/test'
     lines = load_gcode_lines(gcode_path)
 
 

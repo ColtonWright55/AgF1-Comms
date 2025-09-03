@@ -1,6 +1,6 @@
 import json
 from collections import deque
-
+import time
 
 def recv_all(sock, n):
     # Helper function to receive exactly n bytes
@@ -14,6 +14,7 @@ def recv_all(sock, n):
 
 def receive_data(sock, on_status=None):
     while True:
+        time.sleep(2.0)
         raw_msglen = recv_all(sock, 4)
         if not raw_msglen:
             print("Server closed connection")
@@ -27,6 +28,8 @@ def receive_data(sock, on_status=None):
             break
 
         try:
+            print("Sleeping")
+            time.sleep(2.00)
             data = json.loads(msg.decode('utf-8'))
             if on_status is not None:
                 try:
