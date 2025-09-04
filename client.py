@@ -3,10 +3,14 @@ import threading
 import time
 import re
 from collections import deque
-from utils import receive_data
+from utils import rcv_data, rcv_cmd
 
-HOST = '172.30.95.50'  # The server's hostname or IP address
-PORT = 12345  # The port used by the server
+FORGE_HOST = '172.30.95.50'  # The server's hostname or IP address
+FORGE_PORT = 12345  # The port used by the server
+
+TPGEN_HOST = '' # For rcv commands from ToolpathGen
+TPGEN_PORT = 123
+
 
 def load_gcode_lines(filepath):
     commands = []
@@ -30,6 +34,7 @@ class MotionGate():
     def __init__(self):
         self.lock = threading.Lock()
         self.cur_command = None
+        self.cmd_deque = deque()
         self.idle = True
 
     def on_status(self, data):
@@ -47,29 +52,38 @@ class MotionGate():
             else:
                 self.idle=False
 
+    def on_cmd(self):
+        pass
 
-def send_sequentially(sock, commands, gate):
-    for cmd in commands:
-        print(f"Sending command: {cmd}")
-        sock.sendall(cmd.encode('utf-8'))
-        time.sleep(2.00) # time.sleep(0.02)
-        while not gate.idle:
-            time.sleep(0.02)
-        time.sleep(0.02)  # brief settle when done with gcode file
+
+    def send_sequentially(self, sock, commands, gate):
+        for cmd in commands:
+            print(f"Sending command: {cmd}")
+            sock.sendall(cmd.encode('utf-8'))
+            time.sleep(2.00) # time.sleep(0.02)
+            while not gate.idle:
+                time.sleep(0.02)
+            time.sleep(0.02)  # brief settle when done with gcode file
 
 
 if __name__ == '__main__':
-    gcode_path = 'gcode/test'
-    lines = load_gcode_lines(gcode_path)
+    gate = MotionGate()
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tpg_s:
+        
+            tpg_s.bind((TPGEN_HOST, TPGEN_PORT))
+            tpg_s.listen()
+            conn, addr = tpg_s.accept()
+            with conn:
 
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        print("Connected")
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as f_s:
+                    f_s.connect((FORGE_HOST, FORGE_PORT))
+                    print("Connected")
 
-        gate = MotionGate()
-        threading.Thread(target=receive_data, args=(s, gate.on_status), daemon=True).start()
+                    threading.Thread(target=rcv_data, args=(f_s, gate.on_status), daemon=True).start()
+                    threading.Thread(target=rcv_cmd, args=(conn, gate.on_cmd), daemon=True).start()
 
-        send_sequentially(s, lines, gate)
+                    # send_sequentially(f_s, cmd_deque, gate)
 
-        print("All commands sent. Shutdown")
+                    print("All commands sent. Shutdown")

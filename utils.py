@@ -12,7 +12,7 @@ def recv_all(sock, n):
         data += packet
     return data
 
-def receive_data(sock, on_status=None):
+def rcv_data(sock, on_status=None):
     while True:
         time.sleep(2.0)
         raw_msglen = recv_all(sock, 4)
@@ -39,6 +39,16 @@ def receive_data(sock, on_status=None):
         except Exception as e:
             print("Error decoding JSON: ", e)
             break
+
+def rcv_cmd(sock, on_status=None):
+    while True:
+        time.sleep(2.0)
+        data = sock.recv(1024).decode('utf-8')
+        if not data:
+            print("ToolpathGen Socket closed")
+            break
+        print(data)
+
 
 
 def send_commands(sock, commands):
