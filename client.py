@@ -6,7 +6,7 @@ from collections import deque
 from utils import rcv_data, rcv_cmd
 
 FORGE_HOST = '172.30.95.50'  # The server's hostname or IP address
-FORGE_PORT = 12345  # The port used by the server
+FORGE_PORT = 1234  # The port used by the server
 
 TPGEN_HOST = '' # For rcv commands from ToolpathGen
 TPGEN_PORT = 123
@@ -36,16 +36,19 @@ class MotionGate():
         self.cur_command = None
         self.cmd_deque = deque()
         self.idle = True
+        self.last_time = time.time()
 
     def on_status(self, data):
         try:
             cur_command = data.get('command')
         except Exception:
             pass
+        print(data)
+        print(f"Hz: {1/(time.time()-self.last_time)}")
+        self.last_time = time.time()
         self.is_idle()
 
     def is_idle(self):
-        print("[DBG]: Running is_idle")
         with self.lock:
             if self.cur_command != '': # If no command is running, ready to send a new one
                 self.idle = True
@@ -54,13 +57,14 @@ class MotionGate():
 
     def on_cmd(self):
         pass
+        
 
 
     def send_sequentially(self, sock, commands, gate):
         for cmd in commands:
             print(f"Sending command: {cmd}")
             sock.sendall(cmd.encode('utf-8'))
-            time.sleep(2.00) # time.sleep(0.02)
+            time.sleep(0.02)
             while not gate.idle:
                 time.sleep(0.02)
             time.sleep(0.02)  # brief settle when done with gcode file
@@ -71,10 +75,10 @@ if __name__ == '__main__':
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tpg_s:
         
-            tpg_s.bind((TPGEN_HOST, TPGEN_PORT))
-            tpg_s.listen()
-            conn, addr = tpg_s.accept()
-            with conn:
+            # tpg_s.bind((TPGEN_HOST, TPGEN_PORT))
+            # tpg_s.listen()
+            # conn, addr = tpg_s.accept()
+            # with conn:
 
 
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as f_s:
@@ -82,8 +86,8 @@ if __name__ == '__main__':
                     print("Connected")
 
                     threading.Thread(target=rcv_data, args=(f_s, gate.on_status), daemon=True).start()
-                    threading.Thread(target=rcv_cmd, args=(conn, gate.on_cmd), daemon=True).start()
+                    # threading.Thread(target=rcv_cmd, args=(conn, gate.on_cmd), daemon=True).start()
+                    while True:
+                        time.sleep(0.01)
 
-                    # send_sequentially(f_s, cmd_deque, gate)
 
-                    print("All commands sent. Shutdown")

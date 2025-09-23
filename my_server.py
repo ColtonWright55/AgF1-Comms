@@ -1,8 +1,10 @@
 # Written for Python 2.7.6
 
 import sys
+
 import time
 import datetime
+import numpy as np
 import socket
 import linuxcnc
 import json
@@ -11,6 +13,34 @@ import threading
 
 HOST = '172.30.95.50'
 PORT = 1234
+
+
+
+print "Testing LinuxCNC"
+while True:
+    try:
+        s = linuxcnc.stat()
+        if s.poll():
+            break
+    except Exception, e:
+        print "LinuxCNC not ready yet (%s), retrying..." % e
+        time.sleep(1)
+
+print "LinuxCNC ready"
+
+print "Testing network"
+while True:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1.0)
+    try:
+        s.bind((HOST,PORT))
+        s.close()
+        break
+    except socket.error:
+        print "Socket not available, retrying..."
+        time.sleep(1)
+
+print "Network ready"
 
 def handle_client(conn):
     def send_data():
@@ -31,28 +61,28 @@ def handle_client(conn):
                 conn.sendall(message_bytes)
             except socket.error as e:
                 # print "Send failed", e
-                break
+		break
 
             time.sleep(sample_interval)
 
     def receive_commands():
         while True:
             try:
-                cmd = conn.recv(1024)
-                if not cmd:
-                    print "Client Disconnected"
-                    break
-                cmd = cmd.strip('\023')
-                print "received command: ", cmd
+            	cmd = conn.recv(1024)
+            	if not cmd:
+                	print "Client Disconnected"
+                	break
+            	cmd = cmd.strip('\023')
+            	print "received command: ", cmd
 
-                if ok_for_mdi() and cmd is not None:
-                    Lc.mode(linuxcnc.MODE_MDI)
-                    Lc.wait_complete() # wait until mode switch executed
-                    # print "Sending Lc.mdi(cmd)"
-                    Lc.mdi(cmd)
-            except socket.error:
-                print "Client Disconnected"
-                break
+            	if ok_for_mdi() and cmd is not None:
+                	Lc.mode(linuxcnc.MODE_MDI)
+                	Lc.wait_complete() # wait until mode switch executed
+                	# print "Sending Lc.mdi(cmd)"
+                	Lc.mdi(cmd)
+	    except socket.error:
+		print "Client Disconnected"
+		break
 
     t = threading.Thread(target=send_data)
     t.daemon = True
@@ -87,7 +117,7 @@ except linuxcnc.error as detail:
 # Fields we will be sending over ethernet to client
 fields = ['actual_position', 'command']
 
-sample_rate = 2
+sample_rate = 20
 sample_interval = 1.0 / sample_rate
 
 

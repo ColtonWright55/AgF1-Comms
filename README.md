@@ -67,9 +67,54 @@ For setup, you follow Optris quick start guide: https://optris.com/wp-content/up
 USB Server IP: 172.30.95.54
 Subnet:        255.255.255.0
 
-## TODO
 
-* ~~Make sure no buffers fill and crash server or client. Only send one poll packet per sample period.~~
-* ~~Make sure commands are sent/received while polls are still sent. So threaded server.py?~~
-* ~~Server stability issues~~
-* ~~Setup pathpilot to boot server automatically on setup, save changes here~~
+## Agility Forge start server on boot
+
+To have the Linux box start server.py on boot,
+
+Add to `/etc/rc.local`:
+
+```
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+if [ -e /home/operator/monitorWatch ]; then
+  if [ -d /home/operator/tmc/venv ]; then
+    # we make sure the monitorWatch.txt log file can be changed by the later logrotator script
+    if [ ! -e /home/operator/gcode/logfiles/monitorWatch.txt ]; then
+      touch /home/operator/gcode/logfiles/monitorWatch.txt
+    fi
+    chown operator /home/operator/gcode/logfiles/monitorWatch.txt
+    chgrp operator /home/operator/gcode/logfiles/monitorWatch.txt
+    chmod 644 /home/operator/gcode/logfiles/monitorWatch.txt
+    bash -c "source /home/operator/tmc/venv/bin/activate; /home/operator/monitorWatch" >> /home/operator/gcode/logfiles/monitorWatch.txt
+  fi
+fi
+
+su - operator -c "
+  cd /home/operator/v2.12.1/cjw/AgF1-Comms
+  source /home/operator/v2.12.1/scripts/rip-environment.sh
+  python -u my_server.py >> /home/operator/server.log 2>&1 &
+"
+
+
+exit 0
+
+```
+
+Note that server logs will be added to /home/operator/server.log
+rc.local script is ran on boot by the initialization system. The pathpilot PC is an older distribution and does not have systemd, Its sysvinit i think. 
+
+Note: I had to update server.py to work on boot
+ToolpathGenerator may require a restart to connect to server sometimes
+server.py renamed my_server.py

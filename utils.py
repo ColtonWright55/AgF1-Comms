@@ -14,7 +14,7 @@ def recv_all(sock, n):
 
 def rcv_data(sock, on_status=None):
     while True:
-        time.sleep(2.0)
+        time.sleep(0.002)
         raw_msglen = recv_all(sock, 4)
         if not raw_msglen:
             print("Server closed connection")
@@ -28,8 +28,7 @@ def rcv_data(sock, on_status=None):
             break
 
         try:
-            print("Sleeping")
-            time.sleep(2.00)
+            time.sleep(0.02)
             data = json.loads(msg.decode('utf-8'))
             if on_status is not None:
                 try:
@@ -42,12 +41,14 @@ def rcv_data(sock, on_status=None):
 
 def rcv_cmd(sock, on_status=None):
     while True:
-        time.sleep(2.0)
+        time.sleep(0.02)
         data = sock.recv(1024).decode('utf-8')
         if not data:
             print("ToolpathGen Socket closed")
             break
         print(data)
+        if data is not '':
+            on_status(data)
 
 
 
