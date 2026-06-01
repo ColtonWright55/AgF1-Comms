@@ -68,21 +68,27 @@ def handle_client(conn):
     def receive_commands():
         while True:
             try:
-            	cmd = conn.recv(1024)
-            	if not cmd:
-                	print "Client Disconnected"
-                	break
-            	cmd = cmd.strip('\023')
-            	print "received command: ", cmd
+                cmd = conn.recv(1024)
+                if not cmd:
+                    print "Client Disconnected"
+                    break
+                cmd = cmd.strip()
+                if not cmd:
+                    continue
+                print "received command: ", cmd
 
-            	if ok_for_mdi() and cmd is not None:
-                	Lc.mode(linuxcnc.MODE_MDI)
-                	Lc.wait_complete() # wait until mode switch executed
-                	# print "Sending Lc.mdi(cmd)"
-                	Lc.mdi(cmd)
-	    except socket.error:
-		print "Client Disconnected"
-		break
+                if ok_for_mdi():
+                    try:
+                        Lc.mode(linuxcnc.MODE_MDI)
+                        Lc.wait_complete(2.0)
+                        Lc.mdi(cmd)
+                    except Exception as e:
+                        print "MDI error: ", e
+                else:
+                    print "Not ready for MDI, dropping command: ", cmd
+            except socket.error as e:
+                print "Client Disconnected: ", e
+                break
 
     t = threading.Thread(target=send_data)
     t.daemon = True
@@ -125,9 +131,10 @@ sample_interval = 1.0 / sample_rate
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 try:
     s.bind((HOST, PORT))
-    s.listen(1)
+    s.listen(5)
     while True:
         conn, addr = s.accept()
         print "Connected by", addr
