@@ -42,37 +42,50 @@ while True:
 
 print "Network ready"
 
-def handle_client(conn):
-    def send_data():
-        while True:
-            s = Ls.poll()
-            for x in dir(Ls):
-                if not x.startswith("_"):
-                    # print(x, getattr(Ls,x))
-                    pass # 
+# Loop until exactly n bytes received — TCP can split a single message across multiple recv() calls
+def recvall(conn, n):
+    buf = b''
+    while len(buf) < n:
+        chunk = conn.recv(n - len(buf))
+        if not chunk:
+            return None
+        buf += chunk
+    return buf
 
+def handle_client(conn):
+    conn.settimeout(5.0)
+    stop = threading.Event()
+
+    def send_data():
+        while not stop.is_set():
+            Ls.poll()
             data = {field: getattr(Ls, field) for field in fields}
             data['timestamp'] = datetime.datetime.now().isoformat()
 
             message = json.dumps(data)
-            message_bytes = message.encode('utf-8')  # Python 2: encode to bytes
+            message_bytes = message.encode('utf-8')
             try:
                 conn.sendall(struct.pack('!I', len(message_bytes)))
                 conn.sendall(message_bytes)
-            except socket.error as e:
-                # print "Send failed", e
-		break
+            except socket.error:
+                stop.set()
+                break
 
             time.sleep(sample_interval)
 
     def receive_commands():
-        while True:
+        while not stop.is_set():
             try:
-                cmd = conn.recv(1024)
-                if not cmd:
+                raw_len = recvall(conn, 4)
+                if raw_len is None:
                     print "Client Disconnected"
                     break
-                cmd = cmd.strip()
+                msg_len = struct.unpack('!I', raw_len)[0]
+                raw_cmd = recvall(conn, msg_len)
+                if raw_cmd is None:
+                    print "Client Disconnected"
+                    break
+                cmd = raw_cmd.decode('utf-8').strip('\023')
                 if not cmd:
                     continue
                 print "received command: ", cmd
@@ -86,14 +99,18 @@ def handle_client(conn):
                         print "MDI error: ", e
                 else:
                     print "Not ready for MDI, dropping command: ", cmd
+            except socket.timeout:
+                continue
             except socket.error as e:
                 print "Client Disconnected: ", e
                 break
+        stop.set()
 
     t = threading.Thread(target=send_data)
     t.daemon = True
     t.start()
     receive_commands()
+    stop.set()
 
 def ok_for_mdi():
     Ls.poll()
